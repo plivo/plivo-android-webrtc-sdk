@@ -73,7 +73,7 @@ def createVariantCoverage(variant) {
         description = "Generate Jacoco coverage reports for the ${variantName.capitalize()} build."
 
         reports {
-            html.enabled(true)
+            html.required = true
         }
 
         def javaClasses = fileTree(dir: variant.javaCompileProvider.get().destinationDir, excludes: project.excludes)
@@ -132,20 +132,25 @@ def createVariantCoverage(variant) {
 
 
 android {
+    namespace = "com.plivo.endpoint"
+
     lintOptions {
         baseline file("lint-baseline.xml")
         checkDependencies false
     }
-    compileSdkVersion 34
-    buildToolsVersion "30.0.3"
-//    ndkPath ndkPathDef
+    compileSdkVersion 35
+    buildToolsVersion "35.0.0"
+
+    ndkVersion "28.0.12674087"
     defaultConfig {
-        minSdkVersion 21
+        minSdkVersion 26
         configurations.all {
             resolutionStrategy { force 'androidx.core:core:1.6.0' }
         }
-        targetSdkVersion 34
-        versionCode 1
+        targetSdkVersion 35
+        // Version code intentionally bumped from 1 to 30203 to align with
+        // existing production artifacts and maintain upgrade paths.
+        versionCode 30203
         versionName project.libraryVersion
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField 'String', 'SIP_DOMAIN', '"phone.plivo.com"'
@@ -165,9 +170,16 @@ android {
             testCoverageEnabled true
         }
     }
+    buildFeatures {
+        buildConfig true
+    }
+    // Modern packaging for 16 KB page size support
     packagingOptions {
         resources {
             excludes += ['META-INF/proguard/androidx-annotations.pro']
+        }
+        jniLibs {
+            useLegacyPackaging = false  // Modern packaging for 16 KB alignment
         }
     }
     compileOptions {
@@ -184,6 +196,8 @@ android {
     externalNativeBuild {
         ndkBuild {
             path "src/main/cpp/Android.mk"
+            // 16 KB page size alignment flags are set in Application.mk
+            // APP_LDFLAGS is already configured there for 16 KB support
         }
     }
 
@@ -193,7 +207,7 @@ android {
 }
 
 task wrapper(type: Wrapper){
-    gradleVersion = '7.2'
+    gradleVersion = '8.9'
 }
 
 dependencies {
